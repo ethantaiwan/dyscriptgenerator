@@ -1,8 +1,7 @@
-fastapi==0.110.1
-uvicorn[standard]==0.27.1
+fastapi>=0.115,<0.116
+starlette>=0.40,<0.41
+pydantic>=2.7,<3
+pydantic-core>=2.18,<3
+uvicorn[standard]>=0.30,<0.31
+openai>=1.40.0
 SQLAlchemy==2.0.30
-psycopg2-binary==2.9.9
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.9
-pydantic[email]==1.10.12
