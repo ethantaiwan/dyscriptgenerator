@@ -4,7 +4,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from openai import OpenAI
-from openai.types.chat import ChatCompletion
 
 # ========= FastAPI 基本設定 =========
 app = FastAPI(title="Script-to-Images API", version="1.0.0")
@@ -152,7 +151,8 @@ def generate_script(req: GenerateScriptRequest):
     try:
         user_prompt = build_user_prompt(req)
 
-         completion: ChatCompletion = client.chat.completions.create(
+        # ✅ 正確用法：新版 OpenAI SDK 語法
+        completion = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -160,8 +160,10 @@ def generate_script(req: GenerateScriptRequest):
             ],
             temperature=0.8,
         )
-        # OpenAI Responses API：把第一個 output_text 當作 JSON 解析
-        content_text = completion.choices[0].message.content  # 嚴格 JSON
+
+        # 取出生成文字
+        content_text = completion.choices[0].message.content.strip()
+
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
 
