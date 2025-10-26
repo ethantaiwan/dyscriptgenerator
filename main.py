@@ -18,7 +18,7 @@ app.add_middleware(
 
 # ========= OpenAI Client =========
 #OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_API_KEY  = "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"
+OPENAI_API_KEY  = "sk-uvDM4i9hr1uwsw40LKtRXf8YmuIHCso20rjNCXNumvT3BlbkFJN78QYUUPerFjwHRP7dtJy5lKMcicMH_L6Kuht_1R0A"
 if not OPENAI_API_KEY:
     # 在 Render 上到「Environment」加一個 OPENAI_API_KEY
     raise RuntimeError("Missing OPENAI_API_KEY environment variable.")
