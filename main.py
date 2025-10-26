@@ -152,14 +152,17 @@ def generate_script(req: GenerateScriptRequest):
 
         completion = client.responses.create(
             model=DEFAULT_MODEL,
-            system=SYSTEM_PROMPT,
-            input=[{"role": "user", "content": user_prompt}],
+            input=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
             response_format={
                 "type": "json_schema",
                 "json_schema": JSON_SCHEMA
             },
             temperature=0.8,
         )
+
 
         # OpenAI Responses API：把第一個 output_text 當作 JSON 解析
         content_text = completion.output_text  # 嚴格 JSON
