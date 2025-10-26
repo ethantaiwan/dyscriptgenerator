@@ -26,8 +26,8 @@ if not OPENAI_API_KEY:
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 你也可以用環境變數覆寫 Model
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-
+#DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+DEFAULT_MODEL ="gpt-4o"
 # ========= Pydantic 請求與回應 =========
 class GenerateScriptRequest(BaseModel):
     brand: str = Field(..., description="品牌或公司名稱")
