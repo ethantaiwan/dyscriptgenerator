@@ -4,8 +4,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 import os
-import os
-# ========= FastAPI 基本設定 =========
+import re
+from typing import List# ========= FastAPI 基本設定 =========
 
 app = FastAPI(title="Script Generator (Text Mode)")
 app.add_middleware(
@@ -42,6 +42,78 @@ class GenerateScriptRequest(BaseModel):
 
 class TextResult(BaseModel):
     result: str
+
+class ExtractRequest(BaseModel):
+    text: str  # 放 /generate-script 回傳的純文字腳本（result）
+
+class ScenePrompt(BaseModel):
+    scene_no: int
+    prompt: str
+
+class ExtractResponse(BaseModel):
+    prompts: List[ScenePrompt]
+# ====== Robust 解析器：從純文字中抓出每個 Scene 的 image_prompt ======
+IMAGE_PROMPT_KEYS = [
+    r"image[_\s-]*prompt",             # image_prompt / image prompt / image-prompt
+    r"影像提示", r"生圖提示", r"生成圖提示",  # 若你未來改成中文標
+]
+
+def _cleanup_prompt(s: str) -> str:
+    # 去掉項目符號、兩側引號（中/英）、多餘空白與換行
+    s = re.sub(r'^\s*[-•\u2022]\s*', '', s.strip())
+    s = s.strip('「」"“”').strip()
+    # 把多行合併為單行（文生圖模型通常比較喜歡單行）
+    s = re.sub(r'\s*\n\s*', ' ', s)
+    s = re.sub(r'\s{2,}', ' ', s)
+    return s.strip()
+
+def extract_image_prompts(text: str) -> List[ScenePrompt]:
+    prompts: List[ScenePrompt] = []
+
+    # 先依 Scene 區塊切開；Scene 1…(到下一個 Scene 或結尾)
+    scene_blocks = list(re.finditer(
+        r"(Scene\s*(\d+)[\s\S]*?)(?=\nScene\s*\d+\b|\Z)", text, flags=re.IGNORECASE
+    ))
+
+    for m in scene_blocks:
+        block = m.group(1)
+        try:
+            scene_no = int(m.group(2))
+        except Exception:
+            # 若 Scene 標題格式跑掉，就給連號
+            scene_no = len(prompts) + 1
+
+        # 在該區塊內找 image_prompt 標題行，並抓後面的內容直到下一個空白段落/下一個 Scene
+        key_pat = "|".join(IMAGE_PROMPT_KEYS)
+        im = re.search(
+            rf"(?i)({key_pat}).*?\n"              # image_prompt 標題行（容忍括號/說明文字）
+            r"(?:\s*[-•]?\s*)?"                   # 可選的項目符號
+            r"(.+?)"                              # 實際提示內容
+            r"(?=\n\s*\n|\nScene\s*\d+\b|\Z)",    # 遇到空白段落、下一個 Scene 或檔尾即停止
+            block,
+            flags=re.DOTALL
+        )
+
+        if im:
+            raw = im.group(2).strip()
+            prompt = _cleanup_prompt(raw)
+            if prompt:
+                prompts.append(ScenePrompt(scene_no=scene_no, prompt=prompt))
+                continue
+
+        # 後備：若沒標到 image_prompt，嘗試用「7) ...」行的下一行
+        im2 = re.search(
+            r"(?i)\n\s*7\)\s*[^\n]*?\n(.+?)(?=\n\s*\n|\nScene\s*\d+\b|\Z)",
+            block, flags=re.DOTALL
+        )
+        if im2:
+            prompt = _cleanup_prompt(im2.group(1))
+            if prompt:
+                prompts.append(ScenePrompt(scene_no=scene_no, prompt=prompt))
+
+    # 以 scene_no 排序
+    prompts.sort(key=lambda x: x.scene_no)
+    return prompts
 
 
 # ========= 系統提示（修正你提供版本的標點與格式） =========
@@ -95,19 +167,20 @@ def generate_script(req: GenerateScriptRequest):
         return TextResult(result=content_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI error: {e}")
-@app.get("/")
-
-def root():
-    return {"ok": True, "msg": "Script Generator (text mode) is running."}
-    # 將 JSON 轉回 Pydantic 物件
-    #import json
-    #try:
-    #    data = json.loads(content_text)
-    #    return GenerateScriptResponse(**data)
-    #except Exception as e:
-    #    raise HTTPException(status_code=500, detail=f"JSON parse error: {e}")
-
 # ========= 健康檢查 =========
+
 @app.get("/")
 def root():
     return {"ok": True, "service": "Script-to-Images API", "version": "1.0.0"}
+
+@app.post("/extract-image-prompts", response_model=ExtractResponse)
+def extract_image_prompts_endpoint(req: ExtractRequest):
+    try:
+        prompts = extract_image_prompts(req.text)
+        if not prompts:
+            raise HTTPException(status_code=422, detail="找不到 image_prompt 段落，請確認腳本格式。")
+        return ExtractResponse(prompts=prompts)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Parse error: {e}")
