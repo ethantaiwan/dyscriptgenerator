@@ -150,7 +150,7 @@ def generate_script(req: GenerateScriptRequest):
     try:
         user_prompt = build_user_prompt(req)
 
-        completion = client.responses.create(
+        completion = client..chat.completions.create(
             model=DEFAULT_MODEL,
             input=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -162,8 +162,6 @@ def generate_script(req: GenerateScriptRequest):
             },
             temperature=0.8,
         )
-
-
         # OpenAI Responses API：把第一個 output_text 當作 JSON 解析
         content_text = completion.output_text  # 嚴格 JSON
     except Exception as e:
