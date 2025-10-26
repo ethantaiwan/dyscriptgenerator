@@ -77,57 +77,9 @@ SYSTEM_PROMPT = (
     "此外，請為『每個分鏡』產出一段可直接用於文生圖模型的 image_prompt：\n"
     "需包含主體、場景、關鍵視覺元素、相機與鏡頭感、構圖、光線、材質、配色與風格關鍵字；避免含有文字水印、Logo。\n"
     "語言請使用台灣人習慣的繁體中文（全形標點）。\n"
-    "\n請務必以有效的 JSON 格式輸出，並符合指定欄位。"
 )
 
 # ========= JSON Schema（要求模型回傳嚴格 JSON） =========
-JSON_SCHEMA = {
-    "name": "four_scene_script",
-    "schema": {
-        "type": "object",
-        "properties": {
-            "brand": {"type": "string"},
-            "topic": {"type": "string"},
-            "platform": {"type": "string"},
-            "aspect_ratio": {"type": "string"},
-            "visual_style": {"type": "string"},
-            "video_type": {"type": "string"},
-            "outro_line": {"type": "string"},
-            "storyboard_text": {"type": "string"},
-            "scenes": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "scene_no": {"type": "integer"},
-                        "title": {"type": "string"},
-                        "shot_description": {"type": "string"},
-                        "voiceover": {"type": "string"},
-                        "mood_tags": {"type": "array", "items": {"type": "string"}},
-                        "video_type": {"type": "string"},
-                        "platform": {"type": "string"},
-                        "aspect_ratio": {"type": "string"},
-                        "visual_style": {"type": "string"},
-                        "shooting_tips": {"type": "string"},
-                        "image_prompt": {"type": "string"},
-                    },
-                    "required": [
-                        "scene_no", "title", "shot_description", "voiceover",
-                        "mood_tags", "video_type", "platform", "aspect_ratio",
-                        "visual_style", "shooting_tips", "image_prompt"
-                    ],
-                    "additionalProperties": False
-                }
-            }
-        },
-        "required": [
-            "brand", "topic", "platform", "aspect_ratio",
-            "visual_style", "video_type", "outro_line", "storyboard_text", "scenes"
-        ],
-        "additionalProperties": False
-    },
-    "strict": True
-}
 
 # ========= 建立使用者提示 =========
 def build_user_prompt(payload: GenerateScriptRequest) -> str:
@@ -163,17 +115,20 @@ def generate_script(req: GenerateScriptRequest):
 
         # 取出生成文字
         content_text = completion.choices[0].message.content.strip()
-
+        return {"result": content_text}
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
+        raise HTTPException(status_code=500, detail=f"OpenAI error: {e}")
 
+@app.get("/")
+def root():
+    return {"ok": True, "msg": "Script Generator (text mode) is running."}
     # 將 JSON 轉回 Pydantic 物件
-    import json
-    try:
-        data = json.loads(content_text)
-        return GenerateScriptResponse(**data)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"JSON parse error: {e}")
+    #import json
+    #try:
+    #    data = json.loads(content_text)
+    #    return GenerateScriptResponse(**data)
+    #except Exception as e:
+    #    raise HTTPException(status_code=500, detail=f"JSON parse error: {e}")
 
 # ========= 健康檢查 =========
 @app.get("/")
