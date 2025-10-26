@@ -59,7 +59,6 @@ class GenerateScriptResponse(BaseModel):
     aspect_ratio: str
     visual_style: str
     video_type: str
-    scenes: List[Scene]
     outro_line: str
     storyboard_text: str  # 方便你同時顯示純文字腳本（可直接貼到審稿/簡報）
 
@@ -110,7 +109,6 @@ def generate_script(req: GenerateScriptRequest):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.8,
         )
 
         # 取出生成文字
