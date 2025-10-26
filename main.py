@@ -1,20 +1,21 @@
-import os
-from typing import List, Optional
+from typing import Optional
+from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 from openai import OpenAI
-
+import os
+import os
 # ========= FastAPI 基本設定 =========
-app = FastAPI(title="Script-to-Images API", version="1.0.0")
 
+app = FastAPI(title="Script Generator (Text Mode)")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 上線後可換成你的網域
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ========= OpenAI Client =========
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -29,38 +30,19 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 #DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 DEFAULT_MODEL ="gpt-5-mini"
 # ========= Pydantic 請求與回應 =========
+
 class GenerateScriptRequest(BaseModel):
     brand: str = Field(..., description="品牌或公司名稱")
-    topic: str = Field(..., description="影片主題（你在前端的『主題』）")
-    video_type: str = Field(..., description="影片類型（如：一鏡到底、ASMR風格、手持紀錄感、慢動作氛圍、Split Screen 分割畫面、延遲攝影、光影敘事、蒙太奇剪接 等）")
-    platform: str = Field(..., description="曝光平台（如 IG Reels / YouTube Shorts / 抖音 等）")
-    aspect_ratio: str = Field(..., description="影片尺寸比例（如 9:16 / 16:9 / 1:1 / 3:4 / 4:3）")
-    visual_style: str = Field(..., description="視覺風格（如 寫實照片 / 3D 動畫 / 日式手繪 / 立體黏土 / 剪紙風格 等）")
-    # 可選：希望口吻/語氣
+    topic: str = Field(..., description="影片主題")
+    video_type: str = Field(..., description="影片類型")
+    platform: str = Field(..., description="曝光平台")
+    aspect_ratio: str = Field(..., description="影片尺寸比例")
+    visual_style: str = Field(..., description="視覺風格")
     tone: Optional[str] = Field(default="自然、溫暖、貼近日常口語")
 
-class Scene(BaseModel):
-    scene_no: int
-    title: str
-    shot_description: str
-    voiceover: str
-    mood_tags: List[str]
-    video_type: str
-    platform: str
-    aspect_ratio: str
-    visual_style: str
-    shooting_tips: str
-    image_prompt: str  # 直接拿去生圖的提示詞（對齊 shot_description + 風格 + 技法）
+class TextResult(BaseModel):
+    result: str
 
-class GenerateScriptResponse(BaseModel):
-    brand: str
-    topic: str
-    platform: str
-    aspect_ratio: str
-    visual_style: str
-    video_type: str
-    outro_line: str
-    storyboard_text: str  # 方便你同時顯示純文字腳本（可直接貼到審稿/簡報）
 
 # ========= 系統提示（修正你提供版本的標點與格式） =========
 SYSTEM_PROMPT = (
@@ -78,9 +60,9 @@ SYSTEM_PROMPT = (
     "語言請使用台灣人習慣的繁體中文（全形標點）。\n"
 )
 
-# ========= JSON Schema（要求模型回傳嚴格 JSON） =========
 
 # ========= 建立使用者提示 =========
+
 def build_user_prompt(payload: GenerateScriptRequest) -> str:
     return (
         f"品牌：{payload.brand}\n"
@@ -92,32 +74,29 @@ def build_user_prompt(payload: GenerateScriptRequest) -> str:
         f"語氣/口吻：{payload.tone}\n\n"
         "請依上述條件產出四分鏡腳本，並確保每個分鏡都含有可直接生成圖片的 image_prompt。\n"
         "image_prompt 不要包含任何品牌名或文字元素，以免生圖出現浮水印或文字。\n"
-        "結尾請加入「謝謝使用錨點影音的服務！」作為 outro_line。\n"
         "另外，請同時輸出一段 storyboard_text（純文字整段腳本，方便複製分享）。"
     )
 
 # ========= API: 產生腳本 =========
-@app.post("/generate-script", response_model=GenerateScriptResponse)
+@app.post("/generate-script", response_model=TextResult)
 def generate_script(req: GenerateScriptRequest):
     try:
         user_prompt = build_user_prompt(req)
-
-        # ✅ 正確用法：新版 OpenAI SDK 語法
-        completion = client.chat.completions.create(
+        completion = client.chat.completions.create(  # 不要帶 temperature（有些模型不支援）
             model=DEFAULT_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
         )
-
-        # 取出生成文字
-        content_text = completion.choices[0].message.content.strip()
-        return {"result": content_text}
+        content_text = (completion.choices[0].message.content or "").strip()
+        if not content_text:
+            raise HTTPException(status_code=502, detail="OpenAI returned empty content")
+        return TextResult(result=content_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI error: {e}")
-
 @app.get("/")
+
 def root():
     return {"ok": True, "msg": "Script Generator (text mode) is running."}
     # 將 JSON 轉回 Pydantic 物件
