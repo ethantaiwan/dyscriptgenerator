@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from openai import OpenAI
+from openai.types.chat import ChatCompletion
 
 # ========= FastAPI 基本設定 =========
 app = FastAPI(title="Script-to-Images API", version="1.0.0")
@@ -77,6 +78,7 @@ SYSTEM_PROMPT = (
     "此外，請為『每個分鏡』產出一段可直接用於文生圖模型的 image_prompt：\n"
     "需包含主體、場景、關鍵視覺元素、相機與鏡頭感、構圖、光線、材質、配色與風格關鍵字；避免含有文字水印、Logo。\n"
     "語言請使用台灣人習慣的繁體中文（全形標點）。\n"
+    "\n請務必以有效的 JSON 格式輸出，並符合指定欄位。"
 )
 
 # ========= JSON Schema（要求模型回傳嚴格 JSON） =========
@@ -156,14 +158,10 @@ def generate_script(req: GenerateScriptRequest):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": JSON_SCHEMA
-            },
             temperature=0.8,
         )
         # OpenAI Responses API：把第一個 output_text 當作 JSON 解析
-        content_text = completion.output_text  # 嚴格 JSON
+        content_text = completion.choices[0].message.content  # 嚴格 JSON
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
 
