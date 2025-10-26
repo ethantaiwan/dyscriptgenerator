@@ -150,7 +150,7 @@ def generate_script(req: GenerateScriptRequest):
     try:
         user_prompt = build_user_prompt(req)
 
-        completion = client..chat.completions.create(
+        completion = client.chat.completions.create(
             model=DEFAULT_MODEL,
             input=[
                 {"role": "system", "content": SYSTEM_PROMPT},
