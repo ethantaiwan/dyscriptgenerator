@@ -161,9 +161,9 @@ def generate_script(req: GenerateScriptRequest):
                 "json_schema": JSON_SCHEMA
             },
             temperature=0.8,
-        ).choices[0].message.content
+        )
         # OpenAI Responses API：把第一個 output_text 當作 JSON 解析
-        content_text = completion  # 嚴格 JSON
+        content_text = completion.output_text  # 嚴格 JSON
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
 
