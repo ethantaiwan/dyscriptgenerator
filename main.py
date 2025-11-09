@@ -37,7 +37,7 @@ class GenerateScriptRequest(BaseModel):
     video_type: str = Field(..., description="影片類型")
     platform: str = Field(..., description="曝光平台")
     aspect_ratio: str = Field(..., description="影片尺寸比例")
-    videoTechniques: str = Field(..., description="視覺風格")
+    video_Techniques: str = Field(..., description="視覺風格")
     tone: Optional[str] = Field(default="自然、溫暖、貼近日常口語")
 class TextResult(BaseModel):
     result: str
@@ -141,7 +141,7 @@ def build_user_prompt(payload: GenerateScriptRequest) -> str:
         f"曝光平台：{payload.platform}\n"
         f"影片尺寸：{payload.aspect_ratio}\n"
         f"影片類型：{payload.video_type}\n"
-        f"視覺風格：{payload.videoTechniques}\n"
+        f"視覺風格：{payload.video_Techniques}\n"
         f"語氣/口吻：{payload.tone}\n\n"
         "請依上述條件產出四分鏡腳本，並確保每個分鏡都含有可直接生成圖片的 image_prompt。\n"
         "image_prompt 不要包含任何品牌名或文字元素，以免生圖出現浮水印或文字。\n"
