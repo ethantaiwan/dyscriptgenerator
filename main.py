@@ -38,6 +38,7 @@ class GenerateScriptRequest(BaseModel):
     platform: str = Field(..., description="曝光平台")
     aspect_ratio: str = Field(..., description="影片尺寸比例")
     video_techniques: str = Field(..., description="視覺風格")
+    scene_count: int = Field(..., ge=2, le=8, description="分鏡數量")
     tone: Optional[str] = Field(default="自然、溫暖、貼近日常口語")
 class TextResult(BaseModel):
     result: str
