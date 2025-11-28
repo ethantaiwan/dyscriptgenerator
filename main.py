@@ -159,7 +159,7 @@ SYSTEM_PROMPT = (
     "5) 視覺風格建議（光線、色調、質感）。\n"
     "6) 拍攝技巧（光線、鏡頭、節奏、聲音）。\n\n"
 
-    "【image_prompt 規範 — 文生圖專用】\n"
+    "【image_prompt 規範 】\n"
     "請為每個分鏡產出 image_prompt：\n"
     "‧ 全部使用繁體中文。\n"
     "‧ 不得出現英文。\n"
@@ -167,7 +167,7 @@ SYSTEM_PROMPT = (
     "‧ 詳細描述畫面主體、姿勢、環境、光線、構圖、視覺質地、色調。\n"
     "‧ 單段落輸出，不使用列點。\n\n"
 
-    "【video_prompt 規範 — Kling start-end 專用】\n"
+    "【video_prompt 規範 】\n"
     "請比較：\n"
     "‧ Scene X 的 image_prompt（上一張照片）\n"
     "‧ Scene X+1 的 image_prompt（下一張照片）\n"
