@@ -28,7 +28,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 你也可以用環境變數覆寫 Model
 #DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-DEFAULT_MODEL ="gpt-5.1-mini"
+DEFAULT_MODEL ="gpt-4o-mini"
 #DEFAULT_MODEL ="gpt-o4-mini"
 
 # ========= Pydantic 請求與回應 =========
